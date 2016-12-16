@@ -1,3 +1,23 @@
+## Ignore Other Projects
+AFPMakerForSpoolerHelp/
+Config-Batchs/
+PsExec/
+PyAstream/
+SpoolConverterDll/
+SpoolIndexerDll/
+Spooler/
+SpoolerApi/
+SpoolerC/
+SpoolerDb/
+SpoolerHelp/
+SpoolerIHM/
+SpoolerSvc/
+Spooler_CopyToExecutable/
+TemplatePDF2AFP.xml
+TestClient/
+UserExit/
+UserExitManagerDll/
+
 ## Ignore CMake files
 build/
 CMakeFiles/
