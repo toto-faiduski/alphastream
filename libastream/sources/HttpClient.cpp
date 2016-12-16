@@ -1,5 +1,6 @@
 #include "HttpClient.h"
 #include "curl/curl.h"
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -62,7 +63,8 @@ boost::optional<_T> get_optional_value( mObject& object, const std::string& memb
 	if( it->second.type() != _VT )
 	{
 		std::ostringstream os;
-		os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
+		//os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
+        os << "value type is " << it->second.type() << " not " << _VT;
 		throw std::runtime_error(os.str());
 	}
 
@@ -82,7 +84,8 @@ _T get_mandatory_value(mObject& object, const std::string& member)
 	if (it->second.type() != _VT)
 	{
 		std::ostringstream os;
-		os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
+		//os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
+        os << "value type is " << it->second.type() << " not " << _VT;
 		throw std::runtime_error(os.str());
 	}
 
@@ -240,7 +243,7 @@ vector<S_JobInfos> CHttpClient::UploadJob(const char* a_pC_ServerAddr,
 
 	// url de destination de la requete
 	char szURL[1024];
-	sprintf_s(szURL, "http://%s:%d/api/jobs", a_pC_ServerAddr, a_i_ServerPort);
+	sprintf(szURL, "http://%s:%d/api/jobs", a_pC_ServerAddr, a_i_ServerPort);
 
 	curl = curl_easy_init();
 	if (curl)
@@ -306,7 +309,7 @@ S_JobInfos CHttpClient::GetJobInfos(const char* a_pC_ServerAddr, int a_i_Port, i
 	S_JobInfos l_st_JobInfos = { 0 };
 
 	char szURL[1024];
-	sprintf_s(szURL, "http://%s:%d/api/jobs/%d", a_pC_ServerAddr, a_i_Port, a_i_IdJob);
+	sprintf(szURL, "http://%s:%d/api/jobs/%d", a_pC_ServerAddr, a_i_Port, a_i_IdJob);
 
 	CURL *curl = curl_easy_init();
 	if (curl)
@@ -383,7 +386,7 @@ vector<S_JobInfos> CHttpClient::GetJobs(const char* a_pC_ServerAddr,	int a_i_Por
 	vector<S_JobInfos> l_st_JobInfos;
 
 	char szURL[1024];
-	sprintf_s(szURL, "http://%s:%d/api/jobs", a_pC_ServerAddr, a_i_Port);
+	sprintf(szURL, "http://%s:%d/api/jobs", a_pC_ServerAddr, a_i_Port);
 
 	CURL *curl = curl_easy_init();
 	if (curl)
@@ -459,7 +462,7 @@ bool CHttpClient::PrintJob(const char* a_pC_ServerAddr, int a_i_Port, int a_i_Jo
 	bool l_b_JobAddedToPQ = false;
 	char szURL[1024];
 	
-	sprintf_s(szURL, "http://%s:%d/api/jobs/%d/printJob", a_pC_ServerAddr, a_i_Port, a_i_JobId);
+	sprintf(szURL, "http://%s:%d/api/jobs/%d/printJob", a_pC_ServerAddr, a_i_Port, a_i_JobId);
 
 	curl = curl_easy_init();
 	if (curl)

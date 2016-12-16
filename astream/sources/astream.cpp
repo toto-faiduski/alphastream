@@ -427,7 +427,7 @@ int process_getjob( po::parsed_options& parsed, po::variables_map& vm)
 		return 1;
 	}
 	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
-	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % l_JobInfos.m_i_JobId % l_JobInfos.m_str_UserFriendlyName % l_JobInfos.m_str_TemplateName.value_or("---") % l_JobInfos.m_EPreparingStatus;
+	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % l_JobInfos.m_i_JobId % l_JobInfos.m_str_UserFriendlyName % l_JobInfos.m_str_TemplateName.get_value_or("---") % l_JobInfos.m_EPreparingStatus;
 
 	//cout << boost::format("%1%\n") % l_JobInfos.m_str_TemplateName.value_or("??");
 	//cout << boost::format("%1%\n") % l_JobInfos.m_str_FormDef.value_or("??");
@@ -484,7 +484,7 @@ int process_jobs(po::parsed_options& parsed, po::variables_map& vm)
 	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
 	for (auto it = l_JobInfos.begin(); it != l_JobInfos.end(); it++)
 	{
-		cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % it->m_i_JobId % it->m_str_UserFriendlyName % it->m_str_TemplateName.value_or("---") % it->m_EPreparingStatus;
+		cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % it->m_i_JobId % it->m_str_UserFriendlyName % it->m_str_TemplateName.get_value_or("---") % it->m_EPreparingStatus;
 	}
 	return ERROR_ASTREAM_SUCCESS;
 }
