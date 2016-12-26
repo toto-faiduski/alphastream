@@ -165,11 +165,18 @@ int main(int argc, const char* const argv[])
 		}
 	}
 	// options inconnues
-	catch (boost::program_options::error e)
+	catch (boost::program_options::unknown_option e)
 	{
 		cout << e.what() << endl;
 		std::cout << "See 'astream --help'." << endl;
 		return ERROR_ASTREAM_UNKNOWN_OPTION;
+	}
+	// autres erreurs
+	catch (boost::program_options::error e)
+	{
+		cout << e.what() << endl;
+		std::cout << "See 'astream --help'." << endl;
+		return ERROR_ASTREAM_FAILED;
 	}
 
 	return ERROR_ASTREAM_SUCCESS;

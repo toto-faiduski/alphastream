@@ -3,6 +3,7 @@
 typedef enum
 {
 	ERROR_ASTREAM_SUCCESS,								// pas d'erreur
+	ERROR_ASTREAM_FAILED,								// erreur inconnue
 	ERROR_ASTREAM_UNKNOWN_COMMAND,					// commande inconnue
 	ERROR_ASTREAM_REQUIRED_OPTION_MISSING,			// option obligatoire manquante
 	ERROR_ASTREAM_UNKNOWN_OPTION,						// option inconnue
