@@ -250,7 +250,7 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 	vector<S_JobInfos> l_VectJobInfos;
 	try
 	{
-		cout << "uploading job to " << vm["server"].as<string>().c_str() << ":" << vm["port"].as<int>() << " ... ";
+		cout << "uploading job to " << vm["server"].as<string>().c_str() << ":" << vm["port"].as<int>() << " ... " << flush;
 		l_VectJobInfos = l_HttpClient.UploadJob(
 			vm["server"].as<string>().c_str(),
 			vm["port"].as<int>(),
@@ -335,7 +335,7 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 		{
 			try
 			{
-				cout << "adding job (" << l_i_IdJob << ") to print queue ... ";
+				cout << "adding job (" << l_i_IdJob << ") to print queue ... " << flush;
 				bool l_b_IsJobAddedToPrintQ = l_HttpClient.PrintJob(
 					vm["server"].as<string>().c_str(),
 					vm["port"].as<int>(),
