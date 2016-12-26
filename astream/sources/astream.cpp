@@ -12,18 +12,22 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 namespace po = boost::program_options;
 
 using namespace std;
 
 // sub commands
-int process_jobs    ( po::parsed_options& parsed, po::variables_map& vm);
-int process_addjob  ( po::parsed_options& parsed, po::variables_map& vm);
-int process_getjob  ( po::parsed_options& parsed, po::variables_map& vm);
-int process_printjob( po::parsed_options& parsed, po::variables_map& vm);
+int process_jobs    ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_addjob  ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_getjob  ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_printjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
 
 bool ValidatePrintRange(const std::string& input, std::string& output);
 
+/*
+* Print EPreparingStatus names
+*/
 std::ostream& operator<<(std::ostream& os, const EPreparingStatus& p)
 {
 	static string names[] = {
@@ -49,6 +53,23 @@ std::ostream& operator<<(std::ostream& os, const EPreparingStatus& p)
 	os << names[p];
 	return os;
 };
+
+/*
+ * Print usage information
+*/
+void print_usage(po::options_description& options)
+{
+	std::cout << "Usage: astream COMMAND [arg...]" << endl;
+	//std::cout << "       astream [ -h | --help | -v | --version ]" << endl;
+	std::cout << "       astream [ -h | --help ]" << endl;
+	std::cout << options << endl;
+	std::cout << "Commands:" << endl;
+	std::cout << "   jobs        List jobs" << endl;
+	std::cout << "   addjob      Add a job" << endl;
+	std::cout << "   printjob    Print a job" << endl;
+	std::cout << "   getjob      Get job's information" << endl << endl;;
+	std::cout << "Run 'astream COMMAND --help' for more information on a command." << endl;
+}
 
 int main(int argc, const char* const argv[])
 {
@@ -80,6 +101,7 @@ int main(int argc, const char* const argv[])
 	po::variables_map vm;
 	try
 	{
+		// Parse command line
 		po::parsed_options parsed = po::command_line_parser(argc, argv).options(cmdline_options).positional(pos).allow_unregistered().run();
 		po::store(parsed, vm);
 		po::notify(vm);
@@ -88,59 +110,39 @@ int main(int argc, const char* const argv[])
 		{
 			//if (vm.count("help"))
 			{
-				std::cout << "Usage: astream COMMAND [arg...]" << endl;
-				//std::cout << "       astream [ -h | --help | -v | --version ]" << endl;
-				std::cout << "       astream [ -h | --help ]" << endl;
-				std::cout << visible << endl;
-				std::cout << "Commands:" << endl;
-				std::cout << "   jobs        List jobs" << endl;
-				std::cout << "   addjob      Add a job" << endl;
-				std::cout << "   printjob    Print a job" << endl;
-				std::cout << "   getjob      Get job's information" << endl << endl;;
-				std::cout << "Run 'astream COMMAND --help' for more information on a command." << endl;
+				print_usage(visible);
 				return ERROR_ASTREAM_SUCCESS;
 			}
 		}
 		else
 		{
-			//// Server options
-			//po::options_description server("Server options");
-			//server.add_options()
-			//	("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
-			//	("port,p", po::value<int>()->default_value(8100), "astream server port")
-			//	;
-
-			//// Declare a group of options that will be allowed only in config file
-			//po::options_description config_file_options;
-			//config_file_options.add(server);
-
-			//// parse config file
-			//po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
-			//po::notify(vm);
-
-
-
+			// Server options
+			po::options_description server("Server options");
+			server.add_options()
+				("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
+				("port,p", po::value<int>()->default_value(8100), "astream server port")
+				;
 
 			std::string cmd = vm["command"].as<std::string>();
 			if (cmd == "addjob")
 			{
-				return process_addjob( parsed, vm);
+				return process_addjob( parsed, server, vm);
 			}
 			else if (cmd == "getjob")
 			{
-				return process_getjob( parsed, vm);
+				return process_getjob( parsed, server, vm);
 			}
 			else if (cmd == "printjob")
 			{
-				return process_printjob( parsed, vm);
+				return process_printjob( parsed, server, vm);
 			}
 			else if (cmd == "jobs")
 			{
-				return process_jobs( parsed, vm);
+				return process_jobs( parsed, server, vm);
 			}
 			else
 			{
-				std::cout << "'"<< cmd << "' is not an astream command." << endl;
+				std::cout << "'" << cmd << "' is not an astream command." << endl;
 				std::cout << "See 'astream --help'." << endl;
 				return ERROR_ASTREAM_UNKNOWN_COMMAND;
 			}
@@ -152,15 +154,7 @@ int main(int argc, const char* const argv[])
 	{
 		if (vm.count("help"))
 		{
-			std::cout << "Usage: astream COMMAND [arg...]" << endl;
-			std::cout << "       astream [ -h | --help | -v | --version ]" << endl;
-			std::cout << visible << endl;
-			std::cout << "Commands:" << endl;
-			std::cout << "   jobs        List jobs" << endl;
-			std::cout << "   addjob      Add a job" << endl;
-			std::cout << "   printjob    Print a job" << endl;
-			std::cout << "   getjob      Get job's information" << endl << endl;;
-			std::cout << "Run 'astream COMMAND --help' for more information on a command." << endl;
+			print_usage(visible);
 			return ERROR_ASTREAM_SUCCESS;
 		}
 		else
@@ -171,7 +165,7 @@ int main(int argc, const char* const argv[])
 		}
 	}
 	// options inconnues
-	catch (boost::program_options::unknown_option e)
+	catch (boost::program_options::error e)
 	{
 		cout << e.what() << endl;
 		std::cout << "See 'astream --help'." << endl;
@@ -186,25 +180,19 @@ int main(int argc, const char* const argv[])
 * Ajout d'un Job
 *
 **********************************************************************/
-int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
+int process_addjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
-	// Server options
-	po::options_description server("Server options");
-	server.add_options()
-		("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
-		("port,p", po::value<int>()->default_value(8100), "astream server port")
-		;
-
 	// addjob command has the following options:
 	po::options_description addjob_desc("addjob options");
 	addjob_desc.add_options()
-		//("help,h", "produce help message")
 		("friendlyName,n", po::value<string>(), "job's mame")
 		("templateName,u", po::value<string>(), "template mame used for pdf job")
 		("templateFile,t", po::value<string>(), "template file path used for pdf job")
 		("formdef,f", po::value<string>(), "formdef used for afp job")
 		("printRange,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
 		;
+	addjob_desc.add(common_options);
+
 	po::options_description hidden;
 	hidden.add_options()
 		//("input-file", po::value< vector<string> >()->composing(), "input file")
@@ -220,16 +208,19 @@ int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
 
 	// Parse again...
 	po::options_description cmd;
-	cmd.add(hidden).add(addjob_desc).add(server);
+	cmd.add(hidden).add(addjob_desc);
 	po::store(po::command_line_parser(opts).options(cmd).positional(pos).run(), vm);
 
-	// Declare a group of options that will be allowed only in config file
-	po::options_description config_file_options;
-	config_file_options.add(server);
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
 
-	// parse config file
-	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
-	
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
+
 	po::notify(vm);
 
 	if (vm.count("help"))
@@ -253,7 +244,8 @@ int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
 	try
 	{
 		cout << "uploading job to " << vm["server"].as<string>().c_str() << ":" << vm["port"].as<int>() << " ... ";
-		l_VectJobInfos = l_HttpClient.UploadJob(vm["server"].as<string>().c_str(),
+		l_VectJobInfos = l_HttpClient.UploadJob(
+			vm["server"].as<string>().c_str(),
 			vm["port"].as<int>(),
 			vm["input-file"].as<string>().c_str(),
 			(vm.count("friendlyName") == 0) ? NULL : vm["friendlyName"].as<string>().c_str(),
@@ -295,7 +287,8 @@ int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
 			// on récup les infos du job
 			try
 			{
-				l_JobInfos = l_HttpClient.GetJobInfos(vm["server"].as<string>().c_str(),
+				l_JobInfos = l_HttpClient.GetJobInfos(
+					vm["server"].as<string>().c_str(),
 					vm["port"].as<int>(),
 					l_i_IdJob);
 			}
@@ -336,7 +329,8 @@ int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
 			try
 			{
 				cout << "adding job (" << l_i_IdJob << ") to print queue ... ";
-				bool l_b_IsJobAddedToPrintQ = l_HttpClient.PrintJob(vm["server"].as<string>().c_str(),
+				bool l_b_IsJobAddedToPrintQ = l_HttpClient.PrintJob(
+					vm["server"].as<string>().c_str(),
 					vm["port"].as<int>(),
 					l_i_IdJob,
 					l_str_PrintRangeFormatted.c_str());
@@ -356,25 +350,16 @@ int process_addjob( po::parsed_options& parsed, po::variables_map& vm)
 * Récupération d'un Job
 *
 **********************************************************************/
-int process_getjob( po::parsed_options& parsed, po::variables_map& vm)
+int process_getjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
-	// Server options
-	po::options_description server("Server options");
-	server.add_options()
-		("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
-		("port,p", po::value<int>()->default_value(8100), "astream server port")
-		;
-
 	po::options_description hidden;
 	hidden.add_options()
 		("id", po::value<int>(), "job id")
 		;
 	
 	// getjob command has the following options:
-	po::options_description getjob_desc("getjob options");
-	getjob_desc.add_options()
-		//("help,h", "produce help message")
-		;
+	po::options_description getjob_desc;
+	getjob_desc.add(common_options);
 
 	// Collect all the unrecognized options from the first pass. This will include the
 	// (positional) command name, so we need to erase that.
@@ -386,22 +371,25 @@ int process_getjob( po::parsed_options& parsed, po::variables_map& vm)
 
 	// Parse again...
 	po::options_description cmd;
-	cmd.add(hidden).add(getjob_desc).add(server);
+	cmd.add(hidden).add(getjob_desc);
 	po::store(po::command_line_parser(opts).options(cmd).positional(pos).run(), vm);
 
-	// Declare a group of options that will be allowed only in config file
-	po::options_description config_file_options;
-	config_file_options.add(server);
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
 
-	// parse config file
-	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
 
 	po::notify(vm);
 
 	if (vm.count("help"))
 	{
 		std::cout << "Usage: astream getjob [OPTIONS] JOBID" << endl << endl;
-		std::cout << "get job's information from alphastream" << endl << endl;
+		std::cout << "get information for a particular job" << endl << endl;
 		std::cout << getjob_desc << endl;
 		return ERROR_ASTREAM_SUCCESS;
 	}
@@ -439,15 +427,8 @@ int process_getjob( po::parsed_options& parsed, po::variables_map& vm)
 * Récupération des Jobs
 *
 **********************************************************************/
-int process_jobs(po::parsed_options& parsed, po::variables_map& vm)
+int process_jobs(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
-	// Server options
-	po::options_description server("Server options");
-	server.add_options()
-		("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
-		("port,p", po::value<int>()->default_value(8100), "astream server port")
-		;
-
 	// Collect all the unrecognized options from the first pass. This will include the
 	// (positional) command name, so we need to erase that.
 	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
@@ -455,17 +436,28 @@ int process_jobs(po::parsed_options& parsed, po::variables_map& vm)
 
 	// Parse again...
 	po::options_description cmd;
-	cmd.add(server);
+	cmd.add(common_options);
 	po::store(po::command_line_parser(opts).options(cmd).run(), vm);
 	
-	// Declare a group of options that will be allowed only in config file
-	po::options_description config_file_options;
-	config_file_options.add(server);
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
 
-	// parse config file
-	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
 
 	po::notify(vm);
+
+	if (vm.count("help"))
+	{
+		std::cout << "Usage: astream jobs [OPTIONS]" << endl << endl;
+		std::cout << "list jobs" << endl << endl;
+		std::cout << cmd << endl;
+		return ERROR_ASTREAM_SUCCESS;
+	}
 
 	CHttpClient l_HttpClient;
 	vector<S_JobInfos> l_JobInfos;
@@ -494,15 +486,8 @@ int process_jobs(po::parsed_options& parsed, po::variables_map& vm)
 * Impression d'un Job
 *
 **********************************************************************/
-int process_printjob( po::parsed_options& parsed, po::variables_map& vm)
+int process_printjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
-	// Server options
-	po::options_description server("Server options");
-	server.add_options()
-		("server,s", po::value<string>()->default_value("127.0.0.1"), "astream server address")
-		("port,p", po::value<int>()->default_value(8100), "astream server port")
-		;
-
 	po::options_description hidden;
 	hidden.add_options()
 		("id", po::value<int>(), "job id")
@@ -511,9 +496,9 @@ int process_printjob( po::parsed_options& parsed, po::variables_map& vm)
 	// getjob command has the following options:
 	po::options_description printjob_desc("printjob options");
 	printjob_desc.add_options()
-		("help,h", "produce help message")
 		("printRange,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
 		;
+	printjob_desc.add(common_options);
 
 	// Collect all the unrecognized options from the first pass. This will include the
 	// (positional) command name, so we need to erase that.
@@ -525,15 +510,18 @@ int process_printjob( po::parsed_options& parsed, po::variables_map& vm)
 
 	// Parse again...
 	po::options_description cmd;
-	cmd.add(hidden).add(printjob_desc).add(server);
+	cmd.add(hidden).add(printjob_desc);
 	po::store(po::command_line_parser(opts).options(cmd).positional(pos).run(), vm);
 
-	// Declare a group of options that will be allowed only in config file
-	po::options_description config_file_options;
-	config_file_options.add(server);
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
 
-	// parse config file
-	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
 
 	po::notify(vm);
 

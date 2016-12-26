@@ -24,7 +24,7 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 #	set(BOOST_ROOT "D:/Develops/ThirdParty/Boost/boost_1.55.0")
 #endif()
 
-find_package(Boost COMPONENTS program_options system thread date_time REQUIRED)
+find_package(Boost COMPONENTS file_system program_options system thread date_time REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries (astream ${Boost_LIBRARIES})
 
