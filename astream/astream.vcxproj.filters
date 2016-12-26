@@ -107,7 +107,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="makefile" />
     <None Include="packages.config" />
     <None Include="CMakeLists.txt" />
     <None Include="cmake\Modules\Findjson_spirit.cmake">
