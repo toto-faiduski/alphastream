@@ -18,11 +18,12 @@ namespace po = boost::program_options;
 using namespace std;
 
 // sub commands
-int process_job		(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_job_add	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_job_show	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_job_list	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_job_print( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job			( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_add		( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_list		( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_print	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_remove	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_show		( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
 
 bool ValidatePrintRange(const std::string& input, std::string& output);
 
@@ -235,9 +236,7 @@ int process_job(po::parsed_options& parsed, po::options_description& common_opti
 		}
 		else if (cmd == "remove")
 		{
-			std::cout << "'" << cmd << "' command is not yet implemented." << endl;
-			return ERROR_ASTREAM_UNKNOWN_COMMAND;
-			//	return process_job_remove(parsed, server, vm);
+			return process_job_remove(parsed2, common_options, vm);
 		}
 		else if (cmd == "show")
 		{
@@ -429,6 +428,79 @@ int process_job_add( po::parsed_options& parsed, po::options_description& common
 			}
 		}
 	}
+}
+
+/*********************************************************************
+*
+* Suppression d'un Job
+*
+**********************************************************************/
+int process_job_remove(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+{
+	// Collect all the unrecognized options from the first pass. This will include the
+	// (positional) command name, so we need to erase that.
+	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	opts.erase(opts.begin());
+
+	po::options_description hidden;
+	hidden.add_options()
+		("id", po::value<int>(), "job id")
+		;
+
+	// job show command has the following options:
+	po::options_description visible;
+	visible.add(common_options);
+
+	po::positional_options_description pos;
+	pos.add("id", -1);
+
+	// Parse again...
+	po::options_description cmd;
+	cmd.add(hidden).add(visible);
+	po::store(po::command_line_parser(opts).options(cmd).positional(pos).run(), vm);
+
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
+
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
+
+	po::notify(vm);
+
+	if (vm.count("help"))
+	{
+		std::cout << "Usage: astream job remove [<options>] <id>" << endl << endl;
+		std::cout << "Remove the job <id>" << endl << endl;
+		std::cout << visible << endl;
+		return ERROR_ASTREAM_SUCCESS;
+	}
+
+	// si pas de id job fourni, on ne va pas plus loin
+	if (!vm.count("id"))
+	{
+		return ERROR_ASTREAM_NO_JOBID_PROVIDED;
+	}
+
+	CHttpClient l_HttpClient;
+	try
+	{
+		if (!l_HttpClient.RemoveJob(
+			vm["server"].as<string>().c_str(),
+			vm["port"].as<int>(),
+			vm["id"].as<int>()))
+			return 1;
+	}
+	catch (CHttpClientException ex)
+	{
+		cout << ex.what() << endl;
+		return 1;
+	}
+
+	return ERROR_ASTREAM_SUCCESS;
 }
 
 /*********************************************************************

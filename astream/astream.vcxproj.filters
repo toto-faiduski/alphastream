@@ -103,7 +103,6 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="CMakeLists.txt" />
-    <None Include="..\cmake\Modules\Findjson_spirit.cmake" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\stdafx.h">

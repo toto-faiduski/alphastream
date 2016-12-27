@@ -258,7 +258,6 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\cmake\Modules\Findjson_spirit.cmake" />
     <None Include="CMakeLists.txt" />
     <None Include="packages.config">
       <SubType>Designer</SubType>

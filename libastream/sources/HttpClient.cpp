@@ -373,6 +373,90 @@ S_JobInfos CHttpClient::GetJobInfos(const char* a_pC_ServerAddr, int a_i_Port, i
 }
 
 //#####################################################################################
+// Supprime un job
+// ------------------------------------------------------------------------------------
+//	\param[in] a_pC_ServerAddr : ip du serveur
+//	\param[in] a_i_ServerPort : port d'écoute du serveur
+//	\param[in] a_pc_IdJob : id du job
+//	\return	
+//#####################################################################################
+bool CHttpClient::RemoveJob(const char* a_pC_ServerAddr, int a_i_Port, int a_i_IdJob) throw (CHttpClientException)
+{
+	bool l_b_JobRemoved = false;
+
+	char szURL[1024];
+	sprintf(szURL, "http://%s:%d/api/jobs/%d", a_pC_ServerAddr, a_i_Port, a_i_IdJob);
+
+	CURL *curl = curl_easy_init();
+	if (curl)
+	{
+		struct MemoryStruct chunk;
+		chunk.memory = (char*)malloc(1);  /* will be grown as needed by the realloc above */
+		chunk.size = 0;    /* no data at this point */
+
+		struct curl_slist *headers = NULL;
+		headers = curl_slist_append(headers, "Content-Type: application/json");
+
+		curl_easy_setopt(curl, CURLOPT_URL, szURL);
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+		// callback pour récupérer la réponse la réponse à la requete
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+
+		// exécution de la requete HTTP
+		CURLcode res = curl_easy_perform(curl);
+
+		long response_code;
+		if (res == CURLE_OK)
+		{
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+		}
+		// cleanup de curl
+		curl_easy_cleanup(curl);
+
+		// free sur les headers
+		curl_slist_free_all(headers);
+
+		if (res != CURLE_OK)
+		{
+			free(chunk.memory);
+			throw CHttpClientException(res, curl_easy_strerror(res));
+		}
+
+		if (response_code == 404)
+		{
+			free(chunk.memory);
+			throw CHttpClientException(response_code, "Job not found");
+		}
+
+		mValue l_mV_RootValue;
+		if (!read(chunk.memory, l_mV_RootValue))
+		{
+			free(chunk.memory);
+			throw CHttpClientException(1, "error reading JSON result");
+		}
+		if (l_mV_RootValue.type() != bool_type)
+		{
+			free(chunk.memory);
+			throw CHttpClientException(1, "error parsing JSON result (not a boolean)");
+		}
+		l_b_JobRemoved = l_mV_RootValue.get_bool();
+
+		if (res != CURLE_OK)
+		{
+			free(chunk.memory);
+			throw CHttpClientException(res, curl_easy_strerror(res));
+		}
+
+		free(chunk.memory);
+	}
+
+	return l_b_JobRemoved;
+}
+
+//#####################################################################################
 // Récupère les jobs
 // ------------------------------------------------------------------------------------
 //	\param[in] a_pC_ServerAddr : ip du serveur

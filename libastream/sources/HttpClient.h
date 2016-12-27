@@ -44,6 +44,10 @@ public:
 		int a_i_Port,
 		int a_i_IdJob,
 		const char* a_pc_PrintRange) throw (CHttpClientException);
+
+	bool RemoveJob(const char* a_pC_ServerAddr,
+		int a_i_Port,
+		int a_i_IdJob) throw (CHttpClientException);
 };
 
 
