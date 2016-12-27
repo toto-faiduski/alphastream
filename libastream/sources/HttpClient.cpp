@@ -63,8 +63,7 @@ boost::optional<_T> get_optional_value( mObject& object, const std::string& memb
 	if( it->second.type() != _VT )
 	{
 		std::ostringstream os;
-		//os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
-        os << "value type is " << it->second.type() << " not " << _VT;
+		os << "value type is " << it->second.type() << " not " << _VT;
 		throw std::runtime_error(os.str());
 	}
 
@@ -84,8 +83,7 @@ _T get_mandatory_value(mObject& object, const std::string& member)
 	if (it->second.type() != _VT)
 	{
 		std::ostringstream os;
-		//os << "get_value< " << value_type_to_string(_VT) << " > called on " << value_type_to_string(it->second.type()) << " Value";
-        os << "value type is " << it->second.type() << " not " << _VT;
+		os << "value type is " << it->second.type() << " not " << _VT;
 		throw std::runtime_error(os.str());
 	}
 

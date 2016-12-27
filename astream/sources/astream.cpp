@@ -18,10 +18,11 @@ namespace po = boost::program_options;
 using namespace std;
 
 // sub commands
-int process_jobs    ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_addjob  ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_getjob  ( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
-int process_printjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job		(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_add	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_show	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_list	( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
+int process_job_print( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
 
 bool ValidatePrintRange(const std::string& input, std::string& output);
 
@@ -59,16 +60,14 @@ std::ostream& operator<<(std::ostream& os, const EPreparingStatus& p)
 */
 void print_usage(po::options_description& options)
 {
-	std::cout << "Usage: astream COMMAND [arg...]" << endl;
+	std::cout << "Usage: astream <command> [<args>]" << endl;
 	//std::cout << "       astream [ -h | --help | -v | --version ]" << endl;
 	std::cout << "       astream [ -h | --help ]" << endl;
 	std::cout << options << endl;
 	std::cout << "Commands:" << endl;
-	std::cout << "   jobs        List jobs" << endl;
-	std::cout << "   addjob      Add a job" << endl;
-	std::cout << "   printjob    Print a job" << endl;
-	std::cout << "   getjob      Get job's information" << endl << endl;;
-	std::cout << "Run 'astream COMMAND --help' for more information on a command." << endl;
+	std::cout << "   job         Manage jobs" << endl;
+	std::cout << "   printqueue  Manage print queue" << endl << endl;
+	std::cout << "Run 'astream <command> --help' for more information on a command." << endl;
 }
 
 int main(int argc, const char* const argv[])
@@ -124,21 +123,15 @@ int main(int argc, const char* const argv[])
 				;
 
 			std::string cmd = vm["command"].as<std::string>();
-			if (cmd == "addjob")
+			if (cmd == "job")
 			{
-				return process_addjob( parsed, server, vm);
+				return process_job(parsed, server, vm);
 			}
-			else if (cmd == "getjob")
+			else if (cmd == "printqueue")
 			{
-				return process_getjob( parsed, server, vm);
-			}
-			else if (cmd == "printjob")
-			{
-				return process_printjob( parsed, server, vm);
-			}
-			else if (cmd == "jobs")
-			{
-				return process_jobs( parsed, server, vm);
+				std::cout << "'" << cmd << "' command is not yet implemented." << endl;
+				return 1;
+				//return process_printqueue( parsed, server, vm);
 			}
 			else
 			{
@@ -184,10 +177,93 @@ int main(int argc, const char* const argv[])
 
 /*********************************************************************
 *
+* job command
+*
+**********************************************************************/
+int process_job(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+{
+	// Collect all the unrecognized options from the first pass. This will include the
+	// (positional) command name, so we need to erase that.
+	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	opts.erase(opts.begin());
+
+	// Hidden options
+	po::options_description hidden;
+	hidden.add_options()
+		("jobcommand", po::value< string >(), "job command")
+		("jobsubargs", po::value< std::vector<std::string> >(), "job subargs")
+		;
+	po::positional_options_description pos;
+	pos.add("jobcommand", 1)
+		.add("jobsubargs", -1);
+
+	po::options_description cmd_desc;
+	cmd_desc.add(common_options);
+
+	// Parse again...
+	po::options_description cmd;
+	cmd.add(common_options).add(hidden);
+
+	po::parsed_options parsed2 = po::command_line_parser(opts).options(cmd).positional(pos).allow_unregistered().run();
+	po::store(parsed2, vm);
+	po::notify(vm);
+
+	if (vm.count("help") && !vm.count("jobcommand"))
+	{
+		std::cout << "Usage: astream job [<command>] [<options>] [<name>]" << endl << endl;
+		std::cout << "Manage jobs" << endl << endl;
+		std::cout << "Commands:" << endl;
+		std::cout << "   With no arguments, shows a list of existing jobs.Several subcommands are available to perform operations on the jobs." << endl << endl;
+		std::cout << "   add         Add a job" << endl;
+		std::cout << "   print       Send the job <name> to the print queue" << endl;
+		std::cout << "   remove      Remove the job <name>" << endl;
+		std::cout << "   show        Gives some information about the job <name>" << endl << endl;
+		std::cout << "Run 'astream job <command> --help' for more information on a job command." << endl;
+		std::cout << cmd_desc << endl;
+		return ERROR_ASTREAM_SUCCESS;
+	}
+	else if (vm.count("jobcommand"))
+	{
+		std::string cmd = vm["jobcommand"].as<std::string>();
+		if (cmd == "add")
+		{
+			return process_job_add(parsed2, common_options, vm);
+		}
+		else if (cmd == "print")
+		{
+			return process_job_print(parsed2, common_options, vm);
+		}
+		else if (cmd == "remove")
+		{
+			std::cout << "'" << cmd << "' command is not yet implemented." << endl;
+			return ERROR_ASTREAM_UNKNOWN_COMMAND;
+			//	return process_job_remove(parsed, server, vm);
+		}
+		else if (cmd == "show")
+		{
+			return process_job_show(parsed2, common_options, vm);
+		}
+		else
+		{
+			std::cout << "'" << cmd << "' is not an astream job command." << endl;
+			std::cout << "See 'astream job --help'." << endl;
+			return ERROR_ASTREAM_UNKNOWN_COMMAND;
+		}
+	}
+	else // list
+	{
+		return process_job_list(parsed2, common_options, vm);
+	}
+
+	return ERROR_ASTREAM_SUCCESS;
+}
+
+/*********************************************************************
+*
 * Ajout d'un Job
 *
 **********************************************************************/
-int process_addjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+int process_job_add( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
 	// addjob command has the following options:
 	po::options_description addjob_desc("addjob options");
@@ -196,7 +272,7 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 		("templateName,u", po::value<string>(), "template mame used for pdf job")
 		("templateFile,t", po::value<string>(), "template file path used for pdf job")
 		("formdef,f", po::value<string>(), "formdef used for afp job")
-		("printRange,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
+		("range,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
 		;
 	addjob_desc.add(common_options);
 
@@ -232,7 +308,7 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 
 	if (vm.count("help"))
 	{
-		std::cout << "Usage: astream addjob [OPTIONS] FILENAME" << endl << endl;
+		std::cout << "Usage: astream job add [<options>] <filename>" << endl << endl;
 		std::cout << "Add a job to alphastream" << endl << endl;
 		std::cout << addjob_desc << endl;
 		return ERROR_ASTREAM_SUCCESS;
@@ -251,6 +327,7 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 	try
 	{
 		cout << "uploading job to " << vm["server"].as<string>().c_str() << ":" << vm["port"].as<int>() << " ... " << flush;
+
 		l_VectJobInfos = l_HttpClient.UploadJob(
 			vm["server"].as<string>().c_str(),
 			vm["port"].as<int>(),
@@ -275,12 +352,12 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 	}
 
 	// print du job
-	if (vm.count("printRange"))
+	if (vm.count("range"))
 	{
 		string l_str_PrintRangeFormatted;
-		if (!ValidatePrintRange(vm["printRange"].as<string>(), l_str_PrintRangeFormatted))
+		if (!ValidatePrintRange(vm["range"].as<string>(), l_str_PrintRangeFormatted))
 		{
-			cout << "bad format value for --printRange option";
+			cout << "bad format value for --range option";
 			return ERROR_ASTREAM_PRINTRANGE_BAD_FORMAT;
 		}
 
@@ -336,11 +413,13 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 			try
 			{
 				cout << "adding job (" << l_i_IdJob << ") to print queue ... " << flush;
+
 				bool l_b_IsJobAddedToPrintQ = l_HttpClient.PrintJob(
 					vm["server"].as<string>().c_str(),
 					vm["port"].as<int>(),
 					l_i_IdJob,
 					l_str_PrintRangeFormatted.c_str());
+
 				cout << ((l_b_IsJobAddedToPrintQ == true) ? " => SUCCESS" : " => FAILED") << endl;
 			}
 			catch (CHttpClientException& e)
@@ -357,28 +436,28 @@ int process_addjob( po::parsed_options& parsed, po::options_description& common_
 * Récupération d'un Job
 *
 **********************************************************************/
-int process_getjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+int process_job_show( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
+	// Collect all the unrecognized options from the first pass. This will include the
+	// (positional) command name, so we need to erase that.
+	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	opts.erase(opts.begin());
+
 	po::options_description hidden;
 	hidden.add_options()
 		("id", po::value<int>(), "job id")
 		;
 	
-	// getjob command has the following options:
-	po::options_description getjob_desc;
-	getjob_desc.add(common_options);
-
-	// Collect all the unrecognized options from the first pass. This will include the
-	// (positional) command name, so we need to erase that.
-	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-	opts.erase(opts.begin());
+	// job show command has the following options:
+	po::options_description visible;
+	visible.add(common_options);
 
 	po::positional_options_description pos;
 	pos.add("id", -1);
 
 	// Parse again...
 	po::options_description cmd;
-	cmd.add(hidden).add(getjob_desc);
+	cmd.add(hidden).add(visible);
 	po::store(po::command_line_parser(opts).options(cmd).positional(pos).run(), vm);
 
 	if (boost::filesystem::exists("astream.conf"))
@@ -395,9 +474,9 @@ int process_getjob( po::parsed_options& parsed, po::options_description& common_
 
 	if (vm.count("help"))
 	{
-		std::cout << "Usage: astream getjob [OPTIONS] JOBID" << endl << endl;
-		std::cout << "get information for a particular job" << endl << endl;
-		std::cout << getjob_desc << endl;
+		std::cout << "Usage: astream job show [<options>] <id>" << endl << endl;
+		std::cout << "Gives some information about the job <id>" << endl << endl;
+		std::cout << visible << endl;
 		return ERROR_ASTREAM_SUCCESS;
 	}
 
@@ -434,37 +513,37 @@ int process_getjob( po::parsed_options& parsed, po::options_description& common_
 * Récupération des Jobs
 *
 **********************************************************************/
-int process_jobs(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+int process_job_list(po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
 	// Collect all the unrecognized options from the first pass. This will include the
 	// (positional) command name, so we need to erase that.
-	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-	opts.erase(opts.begin());
+	//std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	//opts.erase(opts.begin());
 
 	// Parse again...
-	po::options_description cmd;
-	cmd.add(common_options);
-	po::store(po::command_line_parser(opts).options(cmd).run(), vm);
-	
-	if (boost::filesystem::exists("astream.conf"))
-	{
-		// Declare a group of options that will be allowed only in config file
-		po::options_description config_file_options;
-		config_file_options.add(common_options);
+	//po::options_description cmd;
+	//cmd.add(common_options);
+	//po::store(po::command_line_parser(opts).options(cmd).run(), vm);
+	//
+	//if (boost::filesystem::exists("astream.conf"))
+	//{
+	//	// Declare a group of options that will be allowed only in config file
+	//	po::options_description config_file_options;
+	//	config_file_options.add(common_options);
 
-		// parse config file
-		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
-	}
+	//	// parse config file
+	//	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	//}
 
-	po::notify(vm);
+	//po::notify(vm);
 
-	if (vm.count("help"))
-	{
-		std::cout << "Usage: astream jobs [OPTIONS]" << endl << endl;
-		std::cout << "list jobs" << endl << endl;
-		std::cout << cmd << endl;
-		return ERROR_ASTREAM_SUCCESS;
-	}
+	//if (vm.count("help"))
+	//{
+	//	std::cout << "Usage: astream jobs [<options>]" << endl << endl;
+	//	std::cout << "list jobs" << endl << endl;
+	//	std::cout << cmd << endl;
+	//	return ERROR_ASTREAM_SUCCESS;
+	//}
 
 	CHttpClient l_HttpClient;
 	vector<S_JobInfos> l_JobInfos;
@@ -493,24 +572,24 @@ int process_jobs(po::parsed_options& parsed, po::options_description& common_opt
 * Impression d'un Job
 *
 **********************************************************************/
-int process_printjob( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
+int process_job_print( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm)
 {
+	// Collect all the unrecognized options from the first pass. This will include the
+	// (positional) command name, so we need to erase that.
+	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	opts.erase(opts.begin());
+
 	po::options_description hidden;
 	hidden.add_options()
 		("id", po::value<int>(), "job id")
 		;
 
-	// getjob command has the following options:
-	po::options_description printjob_desc("printjob options");
+	// job print command has the following options:
+	po::options_description printjob_desc("print options");
 	printjob_desc.add_options()
-		("printRange,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
+		("range,r", po::value<string>(), "page range to print - formatted as follow : [min-page;max-page]")
 		;
 	printjob_desc.add(common_options);
-
-	// Collect all the unrecognized options from the first pass. This will include the
-	// (positional) command name, so we need to erase that.
-	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-	opts.erase(opts.begin());
 
 	po::positional_options_description pos;
 	pos.add("id", -1);
@@ -534,7 +613,7 @@ int process_printjob( po::parsed_options& parsed, po::options_description& commo
 
 	if (vm.count("help"))
 	{
-		std::cout << "Usage: astream printjob [OPTIONS] JOBID" << endl << endl;
+		std::cout << "Usage: astream job print [<options>] <id>" << endl << endl;
 		std::cout << "Send a job to the print queue" << endl << endl;
 		std::cout << printjob_desc << endl;
 		return ERROR_ASTREAM_SUCCESS;
@@ -546,21 +625,29 @@ int process_printjob( po::parsed_options& parsed, po::options_description& commo
 		return ERROR_ASTREAM_NO_JOBID_PROVIDED;
 	}
 
-	if (vm.count("printRange"))
+	if (vm.count("range"))
 	{
 		string l_str_PrintRangeFormatted;
-		if (!ValidatePrintRange(vm["printRange"].as<string>(), l_str_PrintRangeFormatted))
+		if (!ValidatePrintRange(vm["range"].as<string>(), l_str_PrintRangeFormatted))
 		{
-			cout << "bad format value for --printRange option";
+			cout << "bad format value for --range option";
 			return ERROR_ASTREAM_PRINTRANGE_BAD_FORMAT;
 		}
 
-		CHttpClient l_HttpClient;
-		l_HttpClient.PrintJob(
-			vm["server"].as<string>().c_str(),
-			vm["port"].as<int>(),
-			vm["id"].as<int>(),
-			l_str_PrintRangeFormatted.c_str());
+		try
+		{
+			CHttpClient l_HttpClient;
+			l_HttpClient.PrintJob(
+				vm["server"].as<string>().c_str(),
+				vm["port"].as<int>(),
+				vm["id"].as<int>(),
+				l_str_PrintRangeFormatted.c_str());
+		}
+		catch (CHttpClientException ex)
+		{
+			cout << ex.what() << endl;
+			return 1;
+		}
 	}
 	return ERROR_ASTREAM_SUCCESS;
 }

@@ -25,8 +25,8 @@ if(WIN32)
 #	set(Boost_DETAILED_FAILURE_MSG ON )
 #	set(Boost_DEBUG ON )
 
-	set(BOOST_ROOT			"C:/local/boost_1_60_0" )
-	set(BOOST_LIBRARYDIR	"C:/local/boost_1_60_0/lib32-msvc-10.0" )
+#	set(BOOST_ROOT			"C:/local/boost_1_60_0" )
+#	set(BOOST_LIBRARYDIR	"C:/local/boost_1_60_0/lib32-msvc-10.0" )
 endif()
 
 find_package(Boost)
