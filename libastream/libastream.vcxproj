@@ -165,7 +165,7 @@
   <ItemGroup>
     <ClCompile Include="sources\astream.cpp" />
     <ClCompile Include="sources\HttpClient.cpp" />
-    <ClCompile Include="sources\json_helperscpp.cpp" />
+    <ClCompile Include="sources\json_helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CMakeLists.txt" />

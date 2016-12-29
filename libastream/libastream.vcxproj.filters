@@ -35,7 +35,7 @@
     <ClCompile Include="sources\astream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sources\json_helperscpp.cpp">
+    <ClCompile Include="sources\json_helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
