@@ -11,6 +11,7 @@ set ( SRC_DIR "sources" )
 set ( LIBASTREAM_SRCS
       ${SRC_DIR}/astream.cpp
       ${SRC_DIR}/HttpClient.cpp
+      ${SRC_DIR}/json_helpers.cpp
     )
 
 
