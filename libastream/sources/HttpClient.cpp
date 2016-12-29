@@ -1,10 +1,11 @@
 #include "HttpClient.h"
+#include "json_helpers.h"
+
 #include "curl/curl.h"
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <string.h>
-#include "json_spirit_reader.h"
 
 using namespace std;
 using namespace json_spirit;
@@ -16,7 +17,6 @@ using namespace json_spirit;
 static char THIS_FILE[] = __FILE__;
 #endif
 #endif
-
 
 struct MemoryStruct {
 	char *memory;
@@ -45,107 +45,6 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 
 	return realsize;
 }
-
-
-//#####################################################################################
-// Get a JSON nullable value
-//#####################################################################################
-template<class _T, Value_type _VT>
-boost::optional<_T> get_optional_value( mObject& object, const std::string& member)
-{
-	auto it = object.find(member);
-	if (it == object.end())
-		throw std::runtime_error("member not found");
-
-	if (it->second.type() == null_type)
-		return  boost::none;
-
-	if( it->second.type() != _VT )
-	{
-		std::ostringstream os;
-		os << "value type is " << it->second.type() << " not " << _VT;
-		throw std::runtime_error(os.str());
-	}
-
-	return  it->second.get_value<_T>();
-}
-
-//#####################################################################################
-// Get a JSON non-nullable value
-//#####################################################################################
-template<class _T, Value_type _VT>
-_T get_mandatory_value(mObject& object, const std::string& member)
-{
-	auto it = object.find(member);
-	if (it == object.end())
-		throw std::runtime_error("member not found");
-
-	if (it->second.type() != _VT)
-	{
-		std::ostringstream os;
-		os << "value type is " << it->second.type() << " not " << _VT;
-		throw std::runtime_error(os.str());
-	}
-
-	return  it->second.get_value<_T>();
-}
-
-//#####################################################################################
-// JSON parser for a job
-//#####################################################################################
-bool GetInfosJobFromJson(const mValue& value, S_JobInfos* a_pst_JobInfos)
-{
-	// on doit avoir un objet
-	if (value.type() != obj_type)
-	{
-		return false;
-	}
-
-	mObject object = value.get_obj();
-	mValue member;
-	try
-	{
-		a_pst_JobInfos->m_i_JobId = get_mandatory_value<int, int_type>(object, "id");
-		a_pst_JobInfos->m_str_OriginalDocName = get_mandatory_value<string, str_type>(object, "OriginalDocName");
-		a_pst_JobInfos->m_str_UserFriendlyName = get_mandatory_value<string, str_type>(object, "UserFriendlyName");
-		a_pst_JobInfos->m_EPreparingStatus = (EPreparingStatus)get_mandatory_value<int, int_type>(object, "PreparingStatus");
-
-		a_pst_JobInfos->m_str_Template = get_optional_value<string, str_type>(object, "Template");
-		a_pst_JobInfos->m_str_TemplateName = get_optional_value<string, str_type>(object, "TemplateName");
-		a_pst_JobInfos->m_str_FormDef = get_optional_value<string, str_type>(object, "FormDef");
-	}
-	catch (std::runtime_error ex)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-//#####################################################################################
-// JSON parser for a job array
-//#####################################################################################
-bool GetJobsFromJson(const mValue& value, std::vector<S_JobInfos>& a_JobInfos)
-{
-	// on doit avoir un tableau
-	if (value.type() != array_type)
-	{
-		return false;
-	}
-
-	auto array = value.get_array();
-	std::vector<mValue>::const_iterator itJob = array.begin();
-	while (itJob != array.end())
-	{
-		S_JobInfos jobInfos;
-		if (GetInfosJobFromJson(*itJob, &jobInfos))
-			a_JobInfos.push_back(jobInfos);
-
-		itJob++;
-	}
-	return true;
-}
-
 
 //#####################################################################################
 // Constructeur
@@ -177,18 +76,48 @@ CHttpClient::~CHttpClient()
 //	\return	Id du (des) job(s) uploadé(s)
 //#####################################################################################
 vector<S_JobInfos> CHttpClient::UploadJob(const char* a_pC_ServerAddr,
+	int a_i_ServerPort,
+	const char* a_pc_Filename,
+	const char* a_pc_FriendlyName,
+	const char* a_pc_TemplateXml,
+	const char* a_pc_TemplateName,
+	const char* a_pc_Formdef)throw (CHttpClientException)
+{
+	vector<S_JobInfos> jobInfos;
+	mValue jsonValue;
+
+	UploadJob(
+		a_pC_ServerAddr,
+		a_i_ServerPort,
+		a_pc_Filename,
+		a_pc_FriendlyName,
+		a_pc_TemplateXml,
+		a_pc_TemplateName,
+		a_pc_Formdef,
+		jsonValue);
+
+	// on parse le buffer json de réponse
+	if (!GetJobsFromJson(jsonValue, jobInfos))
+	{
+		throw CHttpClientException(1, "error parsing JSON result");
+	}
+	
+	return jobInfos;
+}
+
+void CHttpClient::UploadJob(const char* a_pC_ServerAddr,
 									int a_i_ServerPort,
 									const char* a_pc_Filename,
 									const char* a_pc_FriendlyName,
 									const char* a_pc_TemplateXml,
 									const char* a_pc_TemplateName,
-									const char* a_pc_Formdef)throw (CHttpClientException)
+									const char* a_pc_Formdef,
+									mValue& a_jsonValue)throw (CHttpClientException)
 {
 	CURL *curl;
 	CURLcode res;
 	struct curl_httppost* l_pst_formpost = NULL;
 	struct curl_httppost* l_pst_lastpost = NULL;
-	vector<S_JobInfos> l_VectJobInfos;
 
 	// on décrit chaque part du formulaire POST
 	curl_formadd(&l_pst_formpost,
@@ -275,23 +204,14 @@ vector<S_JobInfos> CHttpClient::UploadJob(const char* a_pC_ServerAddr,
 		}
 
 		// lecture du stream json
-		mValue l_mV_RootValue;
-		if (!read(chunk.memory, l_mV_RootValue))
+		if (!read(chunk.memory, a_jsonValue))
 		{
 			free(chunk.memory);
 			throw CHttpClientException(1, "error reading JSON result");
 		}
 
-		// on parse le buffer json de réponse
-		if (!GetJobsFromJson(l_mV_RootValue, l_VectJobInfos))
-		{
-			free(chunk.memory);
-			throw CHttpClientException(1, "error parsing JSON result");
-		}
 		free(chunk.memory);
 	}
-
-	return l_VectJobInfos;
 }
 
 //#####################################################################################
@@ -305,7 +225,20 @@ vector<S_JobInfos> CHttpClient::UploadJob(const char* a_pC_ServerAddr,
 S_JobInfos CHttpClient::GetJobInfos(const char* a_pC_ServerAddr, int a_i_Port, int a_i_IdJob) throw (CHttpClientException)
 {
 	S_JobInfos l_st_JobInfos = { 0 };
+	mValue jsonValue;
 
+	GetJobInfos( a_pC_ServerAddr, a_i_Port, a_i_IdJob, jsonValue);
+
+	// on parse le buffer json de réponse
+	if (!GetJobInfosFromJson(jsonValue, &l_st_JobInfos))
+	{
+		throw CHttpClientException(1, "error parsing JSON result");
+	}
+	return l_st_JobInfos;
+}
+
+void CHttpClient::GetJobInfos(const char* a_pC_ServerAddr, int a_i_Port, int a_i_IdJob, mValue& a_jsonValue) throw (CHttpClientException)
+{
 	char szURL[1024];
 	sprintf(szURL, "http://%s:%d/api/jobs/%d", a_pC_ServerAddr, a_i_Port, a_i_IdJob);
 
@@ -353,23 +286,13 @@ S_JobInfos CHttpClient::GetJobInfos(const char* a_pC_ServerAddr, int a_i_Port, i
 			throw CHttpClientException(response_code, "Job not found");
 		}
 		// lecture du stream json
-		mValue l_mV_RootValue;
-		if (!read(chunk.memory, l_mV_RootValue))
+		if (!read(chunk.memory, a_jsonValue))
 		{
 			free(chunk.memory);
 			throw CHttpClientException(1, "error reading JSON result");
 		}
-
-		// on parse le buffer json de réponse
-		if (!GetInfosJobFromJson(l_mV_RootValue, &l_st_JobInfos))
-		{
-			free(chunk.memory);
-			throw CHttpClientException(1, "error parsing JSON result");
-		}
 		free(chunk.memory);
 	}
-
-	return l_st_JobInfos;
 }
 
 //#####################################################################################
@@ -463,10 +386,23 @@ bool CHttpClient::RemoveJob(const char* a_pC_ServerAddr, int a_i_Port, int a_i_I
 //	\param[in] a_i_ServerPort : port d'écoute du serveur
 //	\return	Infos sur les jobs
 //#####################################################################################
-vector<S_JobInfos> CHttpClient::GetJobs(const char* a_pC_ServerAddr,	int a_i_Port) throw (CHttpClientException)
+vector<S_JobInfos> CHttpClient::GetJobs(const char* a_pC_ServerAddr, int a_i_Port) throw (CHttpClientException)
 {
 	vector<S_JobInfos> l_st_JobInfos;
+	mValue jsonValue;
 
+	GetJobs(a_pC_ServerAddr, a_i_Port, jsonValue);
+
+	// on parse le buffer json de réponse
+	if (!GetJobsFromJson(jsonValue, l_st_JobInfos))
+	{
+		throw CHttpClientException(1, "error parsing JSON result");
+	}
+	return l_st_JobInfos;
+}
+
+void CHttpClient::GetJobs(const char* a_pC_ServerAddr, int a_i_Port, mValue& a_jsonValue) throw (CHttpClientException)
+{
 	char szURL[1024];
 	sprintf(szURL, "http://%s:%d/api/jobs", a_pC_ServerAddr, a_i_Port);
 
@@ -507,24 +443,14 @@ vector<S_JobInfos> CHttpClient::GetJobs(const char* a_pC_ServerAddr,	int a_i_Por
 			throw CHttpClientException(res, curl_easy_strerror(res));
 		}
 		// lecture du stream json
-		mValue l_mV_RootValue;
-		if (!read(chunk.memory, l_mV_RootValue))
+		if (!read(chunk.memory, a_jsonValue))
 		{
 			free(chunk.memory);
 			throw CHttpClientException(1, "error reading JSON result");
 		}
 
-		// on parse le buffer json de réponse
-		if (!GetJobsFromJson(l_mV_RootValue, l_st_JobInfos))
-		{
-			free(chunk.memory);
-			throw CHttpClientException(1, "error parsing JSON result");
-		}
-
 		free(chunk.memory);
 	}
-
-	return l_st_JobInfos;
 }
 
 
@@ -598,3 +524,60 @@ bool CHttpClient::PrintJob(const char* a_pC_ServerAddr, int a_i_Port, int a_i_Jo
 
 	return l_b_JobAddedToPQ;
 }
+
+//#####################################################################################
+// JSON parser for a job
+//#####################################################################################
+bool CHttpClient::GetJobInfosFromJson(const mValue& value, S_JobInfos* a_pst_JobInfos)
+{
+	// on doit avoir un objet
+	if (value.type() != obj_type)
+	{
+		return false;
+	}
+
+	mObject object = value.get_obj();
+	mValue member;
+	try
+	{
+		a_pst_JobInfos->m_i_JobId = get_mandatory_value<int, int_type>(object, "id");
+		a_pst_JobInfos->m_str_OriginalDocName = get_mandatory_value<string, str_type>(object, "OriginalDocName");
+		a_pst_JobInfos->m_str_UserFriendlyName = get_mandatory_value<string, str_type>(object, "UserFriendlyName");
+		a_pst_JobInfos->m_EPreparingStatus = (EPreparingStatus)get_mandatory_value<int, int_type>(object, "PreparingStatus");
+
+		a_pst_JobInfos->m_str_Template = get_optional_value<string, str_type>(object, "Template");
+		a_pst_JobInfos->m_str_TemplateName = get_optional_value<string, str_type>(object, "TemplateName");
+		a_pst_JobInfos->m_str_FormDef = get_optional_value<string, str_type>(object, "FormDef");
+	}
+	catch (std::runtime_error ex)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+//#####################################################################################
+// JSON parser for a job array
+//#####################################################################################
+bool CHttpClient::GetJobsFromJson(const mValue& value, std::vector<S_JobInfos>& a_JobInfos)
+{
+	// on doit avoir un tableau
+	if (value.type() != array_type)
+	{
+		return false;
+	}
+
+	auto array = value.get_array();
+	std::vector<mValue>::const_iterator itJob = array.begin();
+	while (itJob != array.end())
+	{
+		S_JobInfos jobInfos;
+		if (GetJobInfosFromJson(*itJob, &jobInfos))
+			a_JobInfos.push_back(jobInfos);
+
+		itJob++;
+	}
+	return true;
+}
+

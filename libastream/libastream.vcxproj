@@ -159,11 +159,13 @@
   <ItemGroup>
     <ClInclude Include="sources\astream.h" />
     <ClInclude Include="sources\HttpClient.h" />
+    <ClInclude Include="sources\json_helpers.h" />
     <ClInclude Include="sources\SpoolerDefs.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\astream.cpp" />
     <ClCompile Include="sources\HttpClient.cpp" />
+    <ClCompile Include="sources\json_helperscpp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CMakeLists.txt" />
@@ -181,6 +183,7 @@
     <Import Project="..\..\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets" Condition="Exists('..\..\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" />
     <Import Project="..\..\packages\libssh2.redist.1.4.3.3\build\native\libssh2.redist.targets" Condition="Exists('..\..\packages\libssh2.redist.1.4.3.3\build\native\libssh2.redist.targets')" />
     <Import Project="..\..\packages\libssh2.1.4.3.3\build\native\libssh2.targets" Condition="Exists('..\..\packages\libssh2.1.4.3.3\build\native\libssh2.targets')" />
+    <Import Project="..\..\packages\boost_regex.1.60.0.0\build\native\boost_regex.targets" Condition="Exists('..\..\packages\boost_regex.1.60.0.0\build\native\boost_regex.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -197,5 +200,6 @@
     <Error Condition="!Exists('..\..\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8\build\native\zlib.v140.windesktop.msvcstl.dyn.rt-dyn.targets'))" />
     <Error Condition="!Exists('..\..\packages\libssh2.redist.1.4.3.3\build\native\libssh2.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libssh2.redist.1.4.3.3\build\native\libssh2.redist.targets'))" />
     <Error Condition="!Exists('..\..\packages\libssh2.1.4.3.3\build\native\libssh2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\libssh2.1.4.3.3\build\native\libssh2.targets'))" />
+    <Error Condition="!Exists('..\..\packages\boost_regex.1.60.0.0\build\native\boost_regex.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\boost_regex.1.60.0.0\build\native\boost_regex.targets'))" />
   </Target>
 </Project>

@@ -24,12 +24,18 @@
     <ClInclude Include="sources\SpoolerDefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sources\json_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\HttpClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sources\astream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\json_helperscpp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -6,8 +6,11 @@
 #include <iostream>
 #include <vector>
 #include <string>
+
 #include "HttpClient.h"
+#include "json_helpers.h"
 #include "astream_ErrorCode.h"
+
 #include <boost/thread/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/format.hpp>
@@ -16,6 +19,8 @@
 namespace po = boost::program_options;
 
 using namespace std;
+
+const string DefaultJobFormat("%|*id*| %|5t|%|*OriginalDocName*| %|40t|%|*TemplateName*| %|60t|%|*PreparingStatus*|");
 
 // sub commands
 int process_job			( po::parsed_options& parsed, po::options_description& common_options, po::variables_map& vm);
@@ -216,6 +221,7 @@ int process_job(po::parsed_options& parsed, po::options_description& common_opti
 		std::cout << "Commands:" << endl;
 		std::cout << "   With no arguments, shows a list of existing jobs.Several subcommands are available to perform operations on the jobs." << endl << endl;
 		std::cout << "   add         Add a job" << endl;
+		std::cout << "   list        shows a list of existing jobs" << endl;
 		std::cout << "   print       Send the job <name> to the print queue" << endl;
 		std::cout << "   remove      Remove the job <name>" << endl;
 		std::cout << "   show        Gives some information about the job <name>" << endl << endl;
@@ -229,6 +235,10 @@ int process_job(po::parsed_options& parsed, po::options_description& common_opti
 		if (cmd == "add")
 		{
 			return process_job_add(parsed2, common_options, vm);
+		}
+		else if (cmd == "list")
+		{
+			return process_job_list(parsed2, common_options, vm);
 		}
 		else if (cmd == "print")
 		{
@@ -428,6 +438,7 @@ int process_job_add( po::parsed_options& parsed, po::options_description& common
 			}
 		}
 	}
+	return ERROR_ASTREAM_SUCCESS;
 }
 
 /*********************************************************************
@@ -521,7 +532,10 @@ int process_job_show( po::parsed_options& parsed, po::options_description& commo
 		;
 	
 	// job show command has the following options:
-	po::options_description visible;
+	po::options_description visible("show options");
+	visible.add_options()
+		("no-header", "do not print column headers")
+		;
 	visible.add(common_options);
 
 	po::positional_options_description pos;
@@ -559,24 +573,26 @@ int process_job_show( po::parsed_options& parsed, po::options_description& commo
 	}
 
 	CHttpClient l_HttpClient;
-	S_JobInfos l_JobInfos;
+	mValue jsonValue;
 	try
 	{
-		l_JobInfos = l_HttpClient.GetJobInfos(
+		l_HttpClient.GetJobInfos(
 			vm["server"].as<string>().c_str(),
 			vm["port"].as<int>(),
-			vm["id"].as<int>());
+			vm["id"].as<int>(),
+			jsonValue);
 	}
 	catch (CHttpClientException ex)
 	{
 		cout << ex.what() << endl;
 		return 1;
 	}
-	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
-	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % l_JobInfos.m_i_JobId % l_JobInfos.m_str_UserFriendlyName % l_JobInfos.m_str_TemplateName.get_value_or("---") % l_JobInfos.m_EPreparingStatus;
 
-	//cout << boost::format("%1%\n") % l_JobInfos.m_str_TemplateName.value_or("??");
-	//cout << boost::format("%1%\n") % l_JobInfos.m_str_FormDef.value_or("??");
+	JSON_PrettyPrinter( cout, DefaultJobFormat, jsonValue, vm.count("no-header")==0 );
+
+	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
+	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % l_JobInfos.m_i_JobId % l_JobInfos.m_str_UserFriendlyName % l_JobInfos.m_str_TemplateName.get_value_or("---") % l_JobInfos.m_EPreparingStatus;
+
 	return ERROR_ASTREAM_SUCCESS;
 }
 
@@ -589,41 +605,56 @@ int process_job_list(po::parsed_options& parsed, po::options_description& common
 {
 	// Collect all the unrecognized options from the first pass. This will include the
 	// (positional) command name, so we need to erase that.
-	//std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
-	//opts.erase(opts.begin());
+	std::vector<std::string> opts = po::collect_unrecognized(parsed.options, po::include_positional);
+	for (auto it = opts.begin(); it != opts.end(); it++)
+	{
+		if (it->compare("list") == 0)
+		{
+			opts.erase(it);
+			break;
+		}
+	}
+
+	// job show command has the following options:
+	po::options_description visible("list options");
+	visible.add_options()
+		("no-header", "do not print column headers")
+		;
+	visible.add(common_options);
 
 	// Parse again...
-	//po::options_description cmd;
-	//cmd.add(common_options);
-	//po::store(po::command_line_parser(opts).options(cmd).run(), vm);
-	//
-	//if (boost::filesystem::exists("astream.conf"))
-	//{
-	//	// Declare a group of options that will be allowed only in config file
-	//	po::options_description config_file_options;
-	//	config_file_options.add(common_options);
+	po::options_description cmd;
+	cmd.add(visible);
+	po::store(po::command_line_parser(opts).options(cmd).run(), vm);
 
-	//	// parse config file
-	//	po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
-	//}
+	if (boost::filesystem::exists("astream.conf"))
+	{
+		// Declare a group of options that will be allowed only in config file
+		po::options_description config_file_options;
+		config_file_options.add(common_options);
 
-	//po::notify(vm);
+		// parse config file
+		po::store(po::parse_config_file<char>("astream.conf", config_file_options), vm);
+	}
 
-	//if (vm.count("help"))
-	//{
-	//	std::cout << "Usage: astream jobs [<options>]" << endl << endl;
-	//	std::cout << "list jobs" << endl << endl;
-	//	std::cout << cmd << endl;
-	//	return ERROR_ASTREAM_SUCCESS;
-	//}
+	po::notify(vm);
+
+	if (vm.count("help"))
+	{
+		std::cout << "Usage: astream jobs [<options>]" << endl << endl;
+		std::cout << "list jobs" << endl << endl;
+		std::cout << cmd << endl;
+		return ERROR_ASTREAM_SUCCESS;
+	}
 
 	CHttpClient l_HttpClient;
-	vector<S_JobInfos> l_JobInfos;
+	mValue jsonValue;
 	try
 	{
-		l_JobInfos = l_HttpClient.GetJobs(
+		l_HttpClient.GetJobs(
 			vm["server"].as<string>().c_str(),
-			vm["port"].as<int>());
+			vm["port"].as<int>(),
+			jsonValue);
 	}
 	catch (CHttpClientException ex)
 	{
@@ -631,11 +662,13 @@ int process_job_list(po::parsed_options& parsed, po::options_description& common
 		return 1;
 	}
 
-	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
-	for (auto it = l_JobInfos.begin(); it != l_JobInfos.end(); it++)
-	{
-		cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % it->m_i_JobId % it->m_str_UserFriendlyName % it->m_str_TemplateName.get_value_or("---") % it->m_EPreparingStatus;
-	}
+	JSON_PrettyPrinter(cout, DefaultJobFormat, jsonValue, vm.count("no-header") == 0);
+
+	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
+	//for (auto it = l_JobInfos.begin(); it != l_JobInfos.end(); it++)
+	//{
+	//	cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % it->m_i_JobId % it->m_str_UserFriendlyName % it->m_str_TemplateName.get_value_or("---") % it->m_EPreparingStatus;
+	//}
 	return ERROR_ASTREAM_SUCCESS;
 }
 

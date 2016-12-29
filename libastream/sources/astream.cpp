@@ -11,11 +11,11 @@ ASTREAM_EXTERN ASTREAMcode astream_get_job_info(
 	S_JobInfos l_JobInfos;
 	try
 	{
-		l_JobInfos = l_HttpClient.GetJobInfos(
-			address,
-			port,
-			id
-		);
+		//l_JobInfos = l_HttpClient.GetJobInfos(
+		//	address,
+		//	port,
+		//	id
+		//);
 	}
 	catch (CHttpClientException& )
 	{
