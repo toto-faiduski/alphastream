@@ -535,6 +535,12 @@ int process_job_show( po::parsed_options& parsed, po::options_description& commo
 	po::options_description visible("show options");
 	visible.add_options()
 		("no-header", "do not print column headers")
+		("format,f", po::value< string >()->default_value(DefaultJobFormat), "Pretty-print jobs using a boost::format template.\n"
+			"Valid placeholders:\n"
+			"  *id*              - \tjob identifier\n"
+			"  *OriginalDocName* - \tDocument name\n"
+			"  *TemplateName*    - \tTemplate name\n"
+			"  *PreparingStatus* - \tPreparing status")
 		;
 	visible.add(common_options);
 
@@ -588,7 +594,16 @@ int process_job_show( po::parsed_options& parsed, po::options_description& commo
 		return 1;
 	}
 
-	JSON_PrettyPrinter( cout, DefaultJobFormat, jsonValue, vm.count("no-header")==0 );
+	try
+	{
+		JSON_PrettyPrinter(cout, vm["format"].as<string>(), jsonValue, vm.count("no-header") == 0);
+	}
+	catch (std::exception e)
+	{
+		cout << "Formatting exception" << endl;
+		cout << e.what() << endl;
+		return ERROR_ASTREAM_FAILED;
+	}
 
 	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
 	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % l_JobInfos.m_i_JobId % l_JobInfos.m_str_UserFriendlyName % l_JobInfos.m_str_TemplateName.get_value_or("---") % l_JobInfos.m_EPreparingStatus;
@@ -618,7 +633,13 @@ int process_job_list(po::parsed_options& parsed, po::options_description& common
 	// job show command has the following options:
 	po::options_description visible("list options");
 	visible.add_options()
-		("no-header", "do not print column headers")
+		("no-header", "Do not print column headers")
+		("format,f", po::value< string >()->default_value(DefaultJobFormat), "Pretty-print jobs using a boost::format template.\n"
+																									"Valid placeholders:\n"
+																									"  *id*              - \tjob identifier\n"
+																									"  *OriginalDocName* - \tDocument name\n"
+																									"  *TemplateName*    - \tTemplate name\n"
+																									"  *PreparingStatus* - \tPreparing status")
 		;
 	visible.add(common_options);
 
@@ -662,7 +683,16 @@ int process_job_list(po::parsed_options& parsed, po::options_description& common
 		return 1;
 	}
 
-	JSON_PrettyPrinter(cout, DefaultJobFormat, jsonValue, vm.count("no-header") == 0);
+	try
+	{
+		JSON_PrettyPrinter(cout, vm["format"].as<string>(), jsonValue, vm.count("no-header") == 0);
+	}
+	catch (std::exception e)
+	{
+		cout << "Formatting exception" << endl;
+		cout << e.what() << endl;
+		return ERROR_ASTREAM_FAILED;
+	}
 
 	//cout << boost::format("%1% %|5t|%2% %|40t|%3% %|60t|%4%\n") % "ID" % "NAME" % "TEMPLATE" % "PREPARING STATUS";
 	//for (auto it = l_JobInfos.begin(); it != l_JobInfos.end(); it++)

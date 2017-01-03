@@ -67,9 +67,9 @@ ostream& JSON_Object_PrettyPrinter(ostream& os, const string& s, const mValue& v
 struct PropertyFormatter {
 	std::string operator()(boost::smatch match)
 	{
-		//Save property name
-		properties.push_back(string(match[1], 1, match[1].length() - 2));
-		return "";
+		//Save property name : '%|*name*|' => 'name'
+		properties.push_back(string(match[1], 3, match[1].length() - 5));
+		return "%||";
 	};
 	vector<string> properties;
 };
@@ -79,9 +79,9 @@ struct PropertyFormatter {
 //#####################################################################################
 ostream& JSON_PrettyPrinter(ostream& os, const string& s, const mValue& value, bool show_header)
 {
-	// On remplace toutes les propriétés "*......*" par "" tout en les mémorisant
+	// On remplace toutes les arguments "%|*......*|" par "%||" tout en mémorisant les noms des propriétés
 	PropertyFormatter formatter;
-	const boost::regex re("([*]\\w+[*])");
+	const boost::regex re("(%[|][*]\\w+[*][|])");
 	string replaced = boost::regex_replace(s, re, boost::ref(formatter));
 
 	// Affichage du header de tableau
