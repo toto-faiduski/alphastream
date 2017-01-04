@@ -79,7 +79,7 @@ struct PropertyFormatter {
 //#####################################################################################
 ostream& JSON_PrettyPrinter(ostream& os, const string& s, const mValue& value, bool show_header)
 {
-	// On remplace tous les arguments "%|*......*|" par "%||" tout en mémorisant les noms des propriétés
+	// On remplace tous les arguments "%|*......*|" par "%||" tout en mémorisant le nom des propriétés
 	PropertyFormatter formatter;
 	const boost::regex re("(%[|][*]\\w+[*][|])");
 	string replaced = boost::regex_replace(s, re, boost::ref(formatter));
