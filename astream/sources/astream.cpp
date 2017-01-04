@@ -534,13 +534,15 @@ int process_job_show( po::parsed_options& parsed, po::options_description& commo
 	// job show command has the following options:
 	po::options_description visible("show options");
 	visible.add_options()
-		("no-header", "do not print column headers")
-		("format,f", po::value< string >()->default_value(DefaultJobFormat), "Pretty-print jobs using a boost::format template.\n"
-			"Valid placeholders:\n"
-			"  *id*              - \tjob identifier\n"
-			"  *OriginalDocName* - \tDocument name\n"
-			"  *TemplateName*    - \tTemplate name\n"
-			"  *PreparingStatus* - \tPreparing status")
+		("no-header", "Do not print column headers")
+		("format,f", po::value< string >()->default_value(DefaultJobFormat), "Pretty-print job using a boost::format template.\n"
+																									"Valid placeholders:\n"
+																									"  *id*               - \tJob identifier\n"
+																									"  *UserFriendlyName* - \tDocument name\n"
+																									"  *OriginalDocName*  - \tDocument name\n"
+																									"  *TemplateName*     - \tTemplate name\n"
+																									"  *FormDef*          - \tAFP Formdef\n"
+																									"  *PreparingStatus*  - \tPreparing status")
 		;
 	visible.add(common_options);
 
@@ -636,10 +638,12 @@ int process_job_list(po::parsed_options& parsed, po::options_description& common
 		("no-header", "Do not print column headers")
 		("format,f", po::value< string >()->default_value(DefaultJobFormat), "Pretty-print jobs using a boost::format template.\n"
 																									"Valid placeholders:\n"
-																									"  *id*              - \tjob identifier\n"
-																									"  *OriginalDocName* - \tDocument name\n"
-																									"  *TemplateName*    - \tTemplate name\n"
-																									"  *PreparingStatus* - \tPreparing status")
+																									"  *id*               - \tJob identifier\n"
+																									"  *UserFriendlyName* - \tDocument name\n"
+																									"  *OriginalDocName*  - \tDocument name\n"
+																									"  *TemplateName*     - \tTemplate name\n"
+																									"  *FormDef*          - \tAFP Formdef\n"
+																									"  *PreparingStatus*  - \tPreparing status")
 		;
 	visible.add(common_options);
 

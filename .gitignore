@@ -18,6 +18,9 @@ TestClient/
 UserExit/
 UserExitManagerDll/
 
+## Ignore Winmerge backup
+*.bak
+
 ## Ignore CMake files
 build/
 CMakeFiles/
