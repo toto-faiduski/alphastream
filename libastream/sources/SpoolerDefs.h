@@ -7,34 +7,38 @@ using namespace std;
 
 typedef enum
 {
-	Uploading = 0,
-	Waiting = 1,
-	WaitingForPDFToAFPConverting = 2,
-	PDFToAFPConverting = 3,
-	PDFToAFPConverted = 4,
-	PDFToAFPConvertionError = 5,
-	WaitingForIndexing = 6,
-	Indexing = 7,
-	Indexed = 8,
-	IndexingError = 9,
-	UploadingError = 10,
-	Analyzing = 11,
-	AnalyzingError = 12,
-	WaitingForParams = 13,
-	WaitingForPSToPDFConverting = 14,
-	PSToPDFConverting = 15,
-	PSToPDFConverted = 16,
-	PSToPDFConvertionError = 17
+    Uploading = 0,
+    UploadingError = 1,
+    Analyzing = 2,
+    AnalyzingError = 3,
+    WaitingToHash = 4,
+    Hashing = 5,
+    WaitingForOperator = 6,
+    WaitingForParams = 7,
+    Waiting = 8,
+    WaitingForPSToPDFConverting = 9,
+    PSToPDFConverting = 10,
+    PSToPDFConvertionError = 11,
+    PSToPDFConverted = 12,
+    WaitingForPDFToAFPConverting = 13,
+    PDFToAFPConverting = 14,
+    PDFToAFPConvertionError = 15,
+    PDFToAFPConverted = 16,
+    WaitingForIndexing = 17,
+    Indexing = 18,
+    IndexingError = 19,
+    Indexed = 20
 } EPreparingStatus;
 
 typedef enum
 {
-	WaitingForAFPToIPDSConverting = 0,
-	AFPToIPDSConverting = 1,
-	AFPToIPDSConverted = 2,
-	AFPToIPDSConvertionError = 3,
-	WaitingForPrinterResuming = 4,
-	WaitingForOperatorResuming = 5
+    WaitingForAFPToIPDSConverting = 0,
+    AFPToIPDSQueued = 1,
+    AFPToIPDSConverting = 2,
+    AFPToIPDSConverted = 3,
+    AFPToIPDSConvertionError = 4,
+    WaitingForPrinterResuming = 5,
+    WaitingForOperatorResuming = 6
 }EConvertionStatus;
 
 typedef enum
@@ -46,7 +50,8 @@ typedef enum
 	Printed = 4,
 	PrintingError = 5,
 	ResumingPrintingError = 6,
-	AskOperatorRecoveryPage = 7
+	AskOperatorRecoveryPage = 7,
+    PrintingAborted = 8
 }EPrintingStatus;
 
 typedef struct
