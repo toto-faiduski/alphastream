@@ -1,3 +1,11 @@
 language: cpp
-install: sudo apt-get install libboost-all-dev libjson-spirit-dev
-script: rm -r -f builds && mkdir builds && cd builds && cmake ..
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libboost-all-dev libjson-spirit-dev
+
+script:
+  - rm -r -f builds
+  - mkdir builds
+  - cd builds
+  - cmake ..
