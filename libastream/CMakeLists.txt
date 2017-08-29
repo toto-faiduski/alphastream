@@ -29,8 +29,14 @@ if(MSVC)
 #	set(BOOST_ROOT			"C:/local/boost_1_60_0" )
 #	set(BOOST_LIBRARYDIR	"C:/local/boost_1_60_0/lib32-msvc-10.0" )
 
-#	set(BOOST_ROOT			"D:/Develops/ThirdParty/Boost/boost_1_60_0" )
-#	set(BOOST_LIBRARYDIR	"D:/Develops/ThirdParty/Boost/boost_1_60_0/lib32-msvc-14.0" )
+#	set(BOOST_ROOT			"D:/Develops/ThirdParty/Boost/boost_1_64_0" )
+#	set(BOOST_LIBRARYDIR	"D:/Develops/ThirdParty/Boost/boost_1_64_0/lib32-msvc-14.1" )
+
+	set(CURL_INCLUDE_DIR	"D:/Develops/ThirdParty/curl/libcurl-7.49.1-vc14-x64/include" )
+	set(CURL_LIBRARY		"D:/Develops/ThirdParty/curl/libcurl-7.49.1-vc14-x64/lib" )
+
+	set(JSON_SPIRIT_INCLUDE_DIR	"D:/Develops/ThirdParty/JSON Spirit/JsonParser_v4.08/Source" )
+	set(JSON_SPIRIT_LIBRARY		"D:/Develops/ThirdParty/curl/libcurl-7.49.1-vc14-x64/lib" )
 endif()
 
 find_package(Boost)

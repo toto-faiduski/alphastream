@@ -1,2 +1,2 @@
 language: cpp
-script: cd builds && cmake ..
+script: rm -r builds && mkdir builds && cd builds && cmake ..
