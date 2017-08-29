@@ -1,6 +1,6 @@
 #pragma once
 
-typedef enum
+enum
 {
 	ERROR_ASTREAM_SUCCESS,								// pas d'erreur
 	ERROR_ASTREAM_FAILED,								// erreur inconnue
